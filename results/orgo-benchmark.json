@@ -1,0 +1,56 @@
+{
+  "measured_at": "2026-06-09T05:00:00Z",
+  "client_location": "US",
+  "method": "real API calls through the normalized ExternalComputer adapter",
+  "results": [
+    {
+      "provider": "orgo",
+      "specs_reported": {
+        "vcpu": 1,
+        "ram_gb": 4,
+        "resolution": "1280x720x24",
+        "os": "linux"
+      },
+      "specs_observed": {
+        "nproc": 8,
+        "mem_mb": 3937
+      },
+      "boot_ms": {
+        "warm_pool": 272.0,
+        "cold": 3133.3
+      },
+      "desktop_ready_ms": 2087.3,
+      "exec": {
+        "n": 12,
+        "p50_ms": 99.6,
+        "p95_ms": 116.2,
+        "min_ms": 85.5,
+        "max_ms": 116.2
+      },
+      "python_exec": {
+        "p50_ms": 206.3
+      },
+      "file_write": {
+        "p50_ms": 99.9
+      },
+      "click": {
+        "p50_ms": 199.5
+      },
+      "screenshot": {
+        "p50_ms_range": [
+          290.0,
+          1185.3
+        ]
+      },
+      "clone": {
+        "status": 404,
+        "note": "not available on this plan tier"
+      }
+    }
+  ],
+  "reference": {
+    "miosa_sandbox_snapshot_restore_p50_ms": 166,
+    "miosa_production_run_path_p50_s": 0.512,
+    "source": "https://miosa.ai/docs/benchmarks"
+  }
+}

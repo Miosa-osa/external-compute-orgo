@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: MIOSA External Compute — platform server
+  version: 0.1.0
+  description: >
+    The API your white-label app exposes when it embeds external computers
+    (Orgo, E2B, …) per end-user and lets them issue agents. Your provider key
+    and msk_* key stay server-side; the browser only sees scoped results.
+    Reference implementation: platform_server.py.
+servers:
+  - url: https://your-app.miosa.app
+    description: Your app, deployed on MIOSA
+  - url: http://localhost:8000
+    description: Local dev
+paths:
+  /users/{user_id}/computer:
+    post:
+      summary: Provision an external computer for one end-user
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Computer provisioned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  computer_id: { type: string }
+                  provider: { type: string, example: orgo }
+                  status: { type: string, example: running }
+    delete:
+      summary: Tear down the user's computer
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Destroyed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { destroyed: { type: boolean } }
+  /users/{user_id}/agent:
+    post:
+      summary: Issue an agent run on the user's computer
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                goal: { type: string, example: "set up a node project and start the dev server" }
+                harness:
+                  type: string
+                  enum: [probe, model, optimal]
+                  default: probe
+      responses:
+        "200":
+          description: Agent run result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  computer_id: { type: string }
+                  harness: { type: string }
+                  goal: { type: string }
+                  result: { type: string }
+        "404": { description: No computer for user yet }

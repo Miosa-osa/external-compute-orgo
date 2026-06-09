@@ -1,94 +1,110 @@
-# External Compute Providers — plug Orgo into MIOSA
+# MIOSA External Compute — bring any computer into your app
 
-Let your users bring a **third-party computer** (here: [Orgo](https://orgo.ai))
-into a MIOSA application, then orchestrate it with **MIOSA's own agent, hosted
-model, or the user's custom harness** — over the same `Computer` surface as a
+Plug a **third-party computer** ([Orgo](https://orgo.ai), and soon E2B / Daytona)
+into a MIOSA application and drive it with **MIOSA's own agent (Optimal), a
+hosted model, or your own harness** — over the same `Computer` surface as a
 native MIOSA box.
 
-Orgo competes with MIOSA on raw computer-use VMs. This integration absorbs them
-as a *compute source*: they supply the machine, MIOSA owns the orchestration
-layer and the user relationship.
+These providers compete with MIOSA on raw computer-use VMs. This turns them into
+a *supply source*: they give you the machine, **you keep the orchestration layer,
+the agent, and the user relationship**.
 
-> The same pattern works for E2B, Daytona, or any provider that gives you
-> `create` + `exec` + (optionally) computer-use actions. Implement the
-> `ComputeProvider` / `ExternalComputer` contract in `external_compute/provider.py`
-> and everything else — harnesses, benchmark, demo — works unchanged.
+📖 Docs: **https://miosa.ai/docs/integrations/external-computers** ·
+💰 Comparison: **https://miosa.ai/docs/integrations/comparison**
 
-## The model
+---
 
-MIOSA already has three compute substrates behind one API:
+## If you're a MIOSA white-label customer
+
+You run your product on MIOSA — your own brand, your own domain, your users
+never see "MIOSA". This repo is how you let **your end-users** get a computer and
+run agents on it, from inside **your** app, in **your** workspace:
+
+1. **Your app is a MIOSA deployment.** Ship it with `miosa deploy` (see
+   [Deploy docs](https://miosa.ai/docs/deploy/overview)). It runs on the same
+   substrate as the computers it orchestrates.
+2. **Each of your users gets an isolated computer.** Cloud (MIOSA), their own
+   hardware ([BYOC](https://miosa.ai/docs/computers/byoc)), or an **external
+   provider** like Orgo — all through one interface.
+3. **Your users issue agents.** Optimal, a hosted model, or a harness you write —
+   the agent drives the box; your user sees the result. Keys never leave your
+   server.
+4. **Usage rolls up per user** to your MIOSA workspace for billing and quotas
+   ([attribution](https://miosa.ai/docs/platform/attribution)).
+
+`platform_server.py` is a complete reference for steps 2–3. `openapi.yaml`
+documents the API your app exposes.
+
+```bash
+ORGO_API_KEY=sk_live_... python platform_server.py
+# POST /users/alice/computer      → provision an isolated box for "alice"
+# POST /users/alice/agent         → {"goal":"...", "harness":"model"}  run an agent on it
+# DELETE /users/alice/computer    → tear it down
+```
+
+---
+
+## How it works
+
+MIOSA exposes computers on three substrates behind **one** API. A harness
+depends only on `ExternalComputer` and never branches on the vendor:
 
 | Source | Where it runs |
 |---|---|
 | `miosa-cloud` | Firecracker microVMs on MIOSA's fleet |
-| `opencomputers` | the user's own hardware (BYOC) over outbound WS |
-| **`external`** | **a third-party provider (this example)** |
+| `opencomputers` | your own hardware (BYOC) over an outbound WebSocket |
+| **`external`** | **a third-party provider — Orgo, E2B, Daytona, …** |
 
-A harness depends only on `ExternalComputer`. It never branches on the vendor.
+### Surface mapping (verified live against Orgo, 2026-06-09)
 
-## Surface mapping (verified live, 2026-06-09)
-
-| `ExternalComputer` | Orgo reality |
+| `ExternalComputer` | Orgo |
 |---|---|
-| `exec()` | `POST /computers/{id}/bash` → `{output, exit_code}` |
-| `python()` | `POST /computers/{id}/exec` |
-| `shell_endpoint()` | WS terminal `wss://…/desktops/{instance}/ws/terminal` (**no port 22**) |
+| `exec()` / `python()` | `POST /computers/{id}/bash` · `/exec` |
+| `shell_endpoint()` | WS terminal `wss://…/ws/terminal` (**no port 22**) |
 | `screenshot()` | `GET /computers/{id}/screenshot` |
 | `left_click/type/key` | `POST /computers/{id}/{action}` |
-| `read_file/write_file` | via `bash` heredoc/cat (Orgo `/files` is workspace-scoped) |
-| `preview_url(port)` | ❌ **not supported** — Orgo has no general ingress; use a MIOSA edge tunnel |
-| `stop/destroy` | `POST /stop`, `DELETE /computers/{id}` |
+| `read_file/write_file` | via `bash` |
+| `preview_url(port)` | ❌ no general ingress → use a [MIOSA tunnel](https://miosa.ai/docs/computers/byoc#tunnels) |
+| `stop/destroy` | `POST /stop` · `DELETE /computers/{id}` |
 
-The one real gap is **port ingress**: Orgo only exposes RTMP streaming, not
-arbitrary ports. When `preview_url()` raises `NotImplementedError`, route the
-port through MIOSA's edge tunnel (same mechanism as the BYOC tunnel) so the
-external box still serves previews under your domain.
-
-## Run it
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-export ORGO_API_KEY=sk_live_...        # your Orgo key
+export ORGO_API_KEY=sk_live_...
 
-python demo.py                          # ProbeHarness — no LLM, proves the wiring
-python demo.py --harness model --goal "list installed python packages"   # needs MIOSA_API_KEY
-python demo.py --harness optimal        # sketch of binding Optimal to the box
-python demo.py --keep                   # leave the box running
+python demo.py                    # ProbeHarness — no LLM, proves the wiring
+python demo.py --harness model    # drive with MIOSA's hosted model (needs MIOSA_API_KEY)
+python demo.py --harness optimal  # bind MIOSA's Optimal agent (sketch)
 ```
 
-### Harnesses (`harness.py`) — "all of the above + your own"
+### Harnesses — "all of the above, plus your own"
 
 - `ProbeHarness` — deterministic, no model. End-to-end wiring check.
-- `MiosaModelHarness` — drives the box with MIOSA's hosted model (completions API).
-- `OptimalHarness` — hands the box to MIOSA's Optimal agent (wiring sketch).
-- **Custom** — subclass `Harness` and implement `run(computer, goal)`. The
-  computer handle is provider-neutral; bring any loop (Claude Computer Use,
-  your own ReAct, etc.).
+- `MiosaModelHarness` — drives the box with MIOSA's hosted model.
+- `OptimalHarness` — hands the box to MIOSA's Optimal agent.
+- **Custom** — subclass `Harness` and implement `run(computer, goal)`. Bring any
+  loop (Claude Computer Use, your own ReAct, etc.).
 
 ## Benchmark
 
 ```bash
-python benchmark.py --only orgo --runs 12 --json   # Orgo only
-MIOSA_API_KEY=msk_... python benchmark.py --runs 12  # Orgo vs MIOSA, like-for-like
+python benchmark.py --only orgo --runs 12 --json            # Orgo only
+MIOSA_API_KEY=msk_... python benchmark.py --runs 12         # Orgo vs MIOSA, like-for-like
 ```
 
-Measures provision/boot, **desktop-ready** (first command accepted),
-exec round-trip, and screenshot latency — both providers through the *same*
-interface, so the comparison is apples-to-apples.
+Measures provision/boot, desktop-ready, exec, file-write, click, and screenshot
+through the *same* interface. Latest measured results: [`results/orgo-benchmark.json`](results/orgo-benchmark.json).
 
-### Live result — Orgo (12 runs, 2026-06-09, from a US laptop)
-
-| metric | orgo |
+| metric | orgo (measured 2026-06-09) |
 |---|---|
-| boot (provision API) | 272 ms |
+| boot — warm pool / cold | 272 ms / 3.13 s |
 | desktop-ready | 2.09 s |
 | exec p50 / p95 | 100 ms / 116 ms |
-| screenshot p50 | 1185 ms |
+| python / file-write / click p50 | 206 ms / 100 ms / 200 ms |
+| screenshot p50 | 290 ms – 1.19 s |
 
-Run with `MIOSA_API_KEY` set to drop the MIOSA column in next to it. (MIOSA
-sandbox snapshot-restore boots ~166 ms p50; see `/docs/benchmarks`.)
-
-## Files
+## Layout
 
 ```
 external_compute/
@@ -96,12 +112,18 @@ external_compute/
   orgo_provider.py   # Orgo implementation (verified against the live API)
   miosa_provider.py  # MIOSA implementation (wraps the miosa SDK) for comparison
 harness.py           # Probe / MiosaModel / Optimal / your-own orchestrators
+platform_server.py   # embed in YOUR app: provision per-user + issue agents
 demo.py              # connect → drive → teardown
-benchmark.py         # Orgo vs MIOSA on the metrics that matter
+benchmark.py         # Orgo vs MIOSA on boot/exec/screenshot
+openapi.yaml         # API spec for platform_server
+results/             # measured benchmark output (JSON)
 ```
 
 ## Security
 
-- Keep `ORGO_API_KEY` (`sk_live_...`) server-side. Never ship it to a browser.
-- In a real product, store each user's provider key encrypted and scope a MIOSA
-  workspace per user so external boxes roll up to the right tenant for billing.
+- Keep `ORGO_API_KEY` (`sk_live_...`) and `MIOSA_API_KEY` (`msk_...`) server-side. Never ship them to a browser.
+- Store each end-user's provider key encrypted and scope a MIOSA workspace per user so external boxes roll up to the right tenant.
+
+## License
+
+Apache-2.0.
