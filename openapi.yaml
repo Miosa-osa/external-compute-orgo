@@ -3,9 +3,9 @@ info:
   title: MIOSA External Compute — platform server
   version: 0.1.0
   description: >
-    The API your white-label app exposes when it embeds external computers
-    (Orgo, E2B, …) per end-user and lets them issue agents. Your provider key
-    and msk_* key stay server-side; the browser only sees scoped results.
+    The API your white-label app exposes when it embeds Orgo computers per
+    end-user and lets them issue agents. Your Orgo key and msk_* key stay
+    server-side; the browser only sees scoped results.
     Reference implementation: platform_server.py.
 servers:
   - url: https://your-app.miosa.app

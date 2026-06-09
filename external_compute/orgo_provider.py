@@ -94,6 +94,26 @@ class OrgoComputer(ExternalComputer):
             return img.content
         return img_path.encode()
 
+    def prompt(self, instruction: str, *, model: str = "claude-sonnet-4-6") -> str:
+        """Orgo's own OpenAI-compatible agent loop (model screenshots/clicks itself).
+
+        Useful when you want Orgo to drive its own box. For MIOSA-side
+        orchestration use a Harness against exec()/screenshot() instead.
+        """
+        import os
+
+        r = self._s.post(
+            "https://www.orgo.ai/api/v1/chat/completions",
+            json={"model": model, "computer_id": self._data["id"], "messages": [{"role": "user", "content": instruction}]},
+            timeout=DEFAULT_TIMEOUT,
+        )
+        r.raise_for_status()
+        data = r.json()
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError):
+            return str(data)
+
     def left_click(self, x: int, y: int) -> None:
         self._post("/click", {"x": x, "y": y})
 

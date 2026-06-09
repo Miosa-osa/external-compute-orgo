@@ -4,7 +4,7 @@ MIOSA already exposes three compute substrates behind one API:
 
     1. miosa-cloud      — Firecracker microVMs on MIOSA's fleet
     2. opencomputers    — the user's own hardware over an outbound WebSocket (BYOC)
-    3. external          — a third-party provider (Orgo, E2B, Daytona, ...)  ← this module
+    3. external          — a third-party provider; this repo implements Orgo  ← this module
 
 The point of this file is the *contract*. Any external provider that can
 satisfy ``ComputeProvider`` + ``ExternalComputer`` becomes a drop-in compute

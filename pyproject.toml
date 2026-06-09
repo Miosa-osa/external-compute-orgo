@@ -1,7 +1,7 @@
 [project]
 name = "miosa-external-compute"
 version = "0.1.0"
-description = "Plug external computers (Orgo, E2B, Daytona) into MIOSA and orchestrate them with MIOSA's agent, a hosted model, or your own harness."
+description = "Plug Orgo computers into MIOSA and orchestrate them with MIOSA's agent, a hosted model, or your own harness."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }

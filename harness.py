@@ -91,6 +91,67 @@ class OptimalHarness(Harness):
         )
 
 
+class ClaudeComputerUseHarness(Harness):
+    """Drive the box with Anthropic's Claude Computer Use loop.
+
+    Same agent loop you'd run against any computer: screenshot -> Claude with the
+    computer tool -> execute the returned actions -> repeat. The only thing that
+    changes vs a native MIOSA computer is nothing — the actions land on the
+    ExternalComputer, which forwards them to Orgo.
+
+    Needs: pip install anthropic, and ANTHROPIC_API_KEY.
+    """
+
+    def __init__(self, model: str = "claude-sonnet-4-6", width: int = 1280, height: int = 720, max_iters: int = 12) -> None:
+        self._model = model
+        self._w, self._h = width, height
+        self._max_iters = max_iters
+
+    def run(self, computer: ExternalComputer, goal: str) -> str:
+        import base64
+
+        import anthropic
+
+        client = anthropic.Anthropic()
+        tools = [{"type": "computer_20250124", "name": "computer", "display_width_px": self._w, "display_height_px": self._h}]
+        messages = [{"role": "user", "content": goal}]
+
+        transcript: list[str] = []
+        for _ in range(self._max_iters):
+            resp = client.beta.messages.create(model=self._model, max_tokens=4096, tools=tools, messages=messages, betas=["computer-use-2025-01-24"])
+            messages.append({"role": "assistant", "content": resp.content})
+            tool_results = []
+            for block in resp.content:
+                if getattr(block, "type", None) == "text":
+                    transcript.append(block.text)
+                elif getattr(block, "type", None) == "tool_use":
+                    out = self._act(computer, block.input)
+                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": out})
+            if not tool_results:
+                break
+            messages.append({"role": "user", "content": tool_results})
+        return "\n".join(transcript) or "(no text output)"
+
+    def _act(self, computer: ExternalComputer, inp: dict):
+        import base64
+
+        action = inp.get("action")
+        if action == "screenshot":
+            img = base64.b64encode(computer.screenshot()).decode()
+            return [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img}}]
+        if action in ("left_click", "right_click", "double_click"):
+            x, y = inp["coordinate"]
+            getattr(computer, action, computer.left_click)(int(x), int(y))
+            return [{"type": "text", "text": "ok"}]
+        if action == "type":
+            computer.type(inp["text"])
+            return [{"type": "text", "text": "ok"}]
+        if action == "key":
+            computer.key(inp["text"])
+            return [{"type": "text", "text": "ok"}]
+        return [{"type": "text", "text": f"unsupported action {action}"}]
+
+
 def _extract_text(resp) -> str:
     if isinstance(resp, str):
         return resp

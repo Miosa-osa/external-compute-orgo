@@ -1,0 +1,20 @@
+{
+  "name": "@miosa/external-compute-orgo",
+  "version": "0.1.0",
+  "description": "Plug Orgo computers into MIOSA and orchestrate them with MIOSA's agent, a hosted model, or your own harness (TypeScript).",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "demo": "tsx demo.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
