@@ -1,0 +1,3 @@
+requests>=2.31.0
+# Optional — only needed for the MIOSA side (MiosaProvider / MiosaModelHarness):
+miosa>=1.2.1
