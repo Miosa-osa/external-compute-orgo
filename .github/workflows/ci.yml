@@ -4,14 +4,24 @@ on:
     branches: [main]
   pull_request:
 jobs:
-  build:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install
-        run: pip install -r requirements.txt
-      - name: Compile-check all modules
-        run: python -m py_compile external_compute/*.py harness.py demo.py benchmark.py platform_server.py
+      - run: pip install -r requirements.txt pytest
+      - name: Compile-check
+        run: python -m py_compile external_compute/*.py harness.py tools.py demo.py benchmark.py cli.py agent_loop.py platform_server.py
+      - name: Unit tests (no network)
+        run: PYTHONPATH=. pytest tests/ -q
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd typescript && npm install
+      - run: cd typescript && npm run typecheck

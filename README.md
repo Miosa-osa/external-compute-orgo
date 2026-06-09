@@ -124,13 +124,26 @@ external_compute/
   provider.py        # the contract: ComputeProvider + ExternalComputer
   orgo_provider.py   # Orgo implementation (verified against the live API)
   miosa_provider.py  # MIOSA implementation (wraps the miosa SDK) for comparison
-harness.py           # Probe / MiosaModel / Optimal / your-own orchestrators
+  terminal.py        # WebSocket terminal helper (the interactive shell channel)
+harness.py           # Probe / MiosaModel / Optimal / ClaudeComputerUse / your-own
 tools.py             # control primitives as agent tool schemas + dispatcher
+agent_loop.py        # complete model-agnostic tool-calling agent loop
 platform_server.py   # embed in YOUR app: provision per-user + issue agents
+cli.py               # terminal CLI: create / exec / shot / prompt / ls / rm
 demo.py              # connect → drive → teardown
 benchmark.py         # Orgo vs MIOSA on boot/exec/screenshot
 openapi.yaml         # API spec for platform_server
+tests/               # unit tests (no network — fake transport)
+typescript/          # full TS port (provider/orgo/tools/agent/demo)
 results/             # measured benchmark output (JSON)
+```
+
+## Develop
+
+```bash
+make install   # deps + pytest
+make test      # 12 unit tests, no network
+make lint      # compile-check every module
 ```
 
 ## Security

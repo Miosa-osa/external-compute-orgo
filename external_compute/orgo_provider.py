@@ -151,13 +151,23 @@ class OrgoComputer(ExternalComputer):
 class OrgoProvider(ComputeProvider):
     name = "orgo"
 
-    def __init__(self, api_key: Optional[str] = None, *, workspace_id: Optional[str] = None, base: str = ORGO_API_BASE) -> None:
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        *,
+        workspace_id: Optional[str] = None,
+        base: str = ORGO_API_BASE,
+        session: Optional[requests.Session] = None,
+    ) -> None:
         key = api_key or os.environ.get("ORGO_API_KEY")
-        if not key:
+        if not key and session is None:
             raise RuntimeError("Set ORGO_API_KEY or pass api_key=")
         self._base = base
-        self._s = requests.Session()
-        self._s.headers.update({"Authorization": f"Bearer {key}", "content-type": "application/json"})
+        # `session` is injectable for testing (a fake transport) and for callers
+        # who want connection pooling / custom retry policies.
+        self._s = session or requests.Session()
+        if session is None:
+            self._s.headers.update({"Authorization": f"Bearer {key}", "content-type": "application/json"})
         self._workspace_id = workspace_id or os.environ.get("ORGO_WORKSPACE_ID") or self._default_workspace()
 
     def _default_workspace(self) -> str:
